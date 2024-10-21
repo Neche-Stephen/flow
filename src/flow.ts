@@ -3,31 +3,14 @@ import path from "path";
 import os from "os";
 import { LogEntryType } from "./const";
 import { ChatGptLog } from "./chatgpt-log";
+import { LogEntry, BufferEntry, Request, Response, FunctionCall, Meta } from "./log-entry";
 
-
-
-// Interfaces for Log Entries
-interface LogEntry {
-  type: typeof LogEntryType[keyof typeof LogEntryType];
-  timestamp: string;
-  data: any; 
-}
-
-interface RequestData {
-  model?: string;
-  [key: string]: any;
-}
-
-interface FunctionCallData {
-  name: string;
-  arguments: any;
-}
 
 // Class definition
 class Flow {
-  private buffer: LogEntry[] = [];
-  private sessionId: string | null = null;
-  private currentRequestId: string | null = null;
+  private buffer: BufferEntry[] = [];
+  private sessionId: string | undefined = undefined;
+  private currentRequestId: string | undefined = undefined;
   private static instance: Flow | null = null;
   private handlers: { [key: string]: ChatGptLog } = {
     chatgpt: new ChatGptLog(),
@@ -36,8 +19,8 @@ class Flow {
   constructor() {
     // Initialize handlers in the constructor
     this.buffer = [];
-    this.sessionId = null;
-    this.currentRequestId = null;
+    this.sessionId = undefined;
+    this.currentRequestId = undefined;
     this.handlers = {
       chatgpt: new ChatGptLog(),
     };
@@ -68,10 +51,10 @@ class Flow {
       type: LogEntryType.PROMPT,
       timestamp: new Date().toISOString(),
       data: { prompt, trigger },
-    });
+    } );
   }
 
-  logRequest(requestData: RequestData): void {
+  logRequest(requestData: any): void {
     this.buffer.push({
       type: LogEntryType.REQUEST,
       timestamp: new Date().toISOString(),
@@ -87,7 +70,7 @@ class Flow {
     });
   }
 
-  logFunctionCall(functionCallData: FunctionCallData): void {
+  logFunctionCall(functionCallData: any): void {
     this.buffer.push({
       type: LogEntryType.FUNCTION_CALL,
       timestamp: new Date().toISOString(),
@@ -95,7 +78,7 @@ class Flow {
     });
   }
 
-  log(key: string, data: any): void {
+  log(key: string, data: any ): void {
     this.buffer.push({
       type: LogEntryType.CUSTOM,
       timestamp: new Date().toISOString(),
@@ -111,15 +94,15 @@ class Flow {
     });
   }
 
-  getSessionId(): string | null {
+  getSessionId(): string | undefined {
     return this.sessionId;
   }
 
-  getRequestId(): string | null {
+  getRequestId(): string | undefined {
     return this.currentRequestId;
   }
 
-  private createLogEntry(readonlyBuffer: Readonly<LogEntry[]>): any {
+  private createLogEntry(readonlyBuffer: Readonly<BufferEntry[]>): LogEntry {
     const modelFamily = this.getModelFamily(readonlyBuffer);
     const logEntry = {
       requestId: this.currentRequestId,
@@ -132,7 +115,7 @@ class Flow {
     return logEntry;
   }
 
-  private getModelFamily(buffer: Readonly<LogEntry[]>): string {
+  private getModelFamily(buffer: Readonly<BufferEntry[]>): string {
     const entry = buffer.find((e) => e.type === LogEntryType.REQUEST);
     if (!entry) {
       // The request was not made.
@@ -148,19 +131,22 @@ class Flow {
     return "chatgpt"; // Default fallback
   }
 
-  async flushLogs(): Promise<any> {
+  async flushLogs(transport?: (logEntry: LogEntry) => void): Promise<any> {
     if (this.buffer.length === 0) {
       return;
     }
 
-    const readonlyBuffer: Readonly<LogEntry[]> = Object.freeze([...this.buffer]);
+    const readonlyBuffer: Readonly<BufferEntry[]> = Object.freeze([...this.buffer]);
     const logEntry = this.createLogEntry(readonlyBuffer);
 
-    const logFileName = `${new Date().toISOString().split("T")[0]}.jsonl`;
-    const logFilePath = path.join("./", logFileName);
+    if (transport) { 
+      transport(logEntry); 
+    } else { 
+      const logFileName = `${new Date().toISOString().split("T")[0]}.jsonl`; 
+      const logFilePath = path.join("./data", logFileName); 
 
-    await fs.appendFile(logFilePath, JSON.stringify(logEntry) + "\n");
-
+      await fs.appendFile(logFilePath, JSON.stringify(logEntry) + "\n"); 
+    }
     this.buffer = [];
 
     return logEntry;
