@@ -1,0 +1,6 @@
+{"model": "Gemini 1.5 flash", "tokenInputCostPer10K": 0, "tokenOutputCostPer10K": 0}
+{"model": "Gemini 1.5 pro", "tokenInputCostPer10K": 0.035, "tokenOutputCostPer10K": 0.105}
+{"model": "LLama 3.1 405B", "tokenInputCostPer10K": 0.0533, "tokenOutputCostPer10K": 0.16}
+{"model": "ChatGPT 4o", "tokenInputCostPer10K": 0.05, "tokenOutputCostPer10K": 0.15}
+{"model": "Claude 3.5 sonnet", "tokenInputCostPer10K": 0.03, "tokenOutputCostPer10K": 0.15}
+{"model": "ChatGPT 4o-mini", "tokenInputCostPer10K": 0.0015, "tokenOutputCostPer10K": 0.006}
